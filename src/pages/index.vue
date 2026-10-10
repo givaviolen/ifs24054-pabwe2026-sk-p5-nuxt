@@ -21,11 +21,17 @@ const rupiah = (value: number) => new Intl.NumberFormat('id-ID', { style: 'curre
   <main class="min-h-screen">
     <header class="flex items-center justify-between border-b border-slate-200 bg-white px-6 py-4 md:px-10">
       <div class="flex items-center gap-3"><div class="rounded-xl bg-blue-600 p-2 text-white"><Wallet :size="22" /></div><div><p class="font-extrabold">Delcom Cash Flow</p><p class="text-xs text-slate-500">Pengelolaan arus kas</p></div></div>
-      <button class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-50" @click="refresh"><RefreshCw class="mr-2 inline" :size="16" />Muat ulang</button>
+      <div class="flex items-center gap-2">
+        <button class="rounded-xl border border-slate-200 px-4 py-2 text-sm font-semibold hover:bg-slate-50" @click="refresh"><RefreshCw class="mr-2 inline" :size="16" />Muat ulang</button>
+        <button class="rounded-xl border border-rose-200 px-4 py-2 text-sm font-semibold text-rose-600 hover:bg-rose-50" @click="doLogout"><LogOut class="mr-2 inline" :size="16" />Keluar</button>
+      </div>
     </header>
     <section class="mx-auto max-w-7xl px-5 py-10 md:px-8">
       <div class="mb-8 flex flex-col justify-between gap-4 md:flex-row md:items-end"><div><p class="mb-2 text-sm font-bold uppercase tracking-widest text-blue-600">Ringkasan keuangan</p><h1 class="text-3xl font-extrabold tracking-tight md:text-4xl">Dashboard Arus Kas</h1><p class="mt-2 text-slate-500">Pantau pemasukan dan pengeluaran Anda dalam satu tempat.</p></div><button class="rounded-xl bg-blue-600 px-5 py-3 font-bold text-white shadow-lg shadow-blue-600/20 hover:bg-blue-700" @click="refresh"><Plus class="mr-2 inline" :size="18" />Perbarui data</button></div>
-      <p v-if="errorMessage" class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">{{ errorMessage }} Pastikan API dapat diakses dan Anda sudah mengatur autentikasi.</p>
+      <p v-if="errorMessage" class="mb-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-700">
+        {{ errorMessage }}. Pastikan API dapat diakses dan Anda sudah mengatur autentikasi.
+        <NuxtLink to="/login" class="ml-2 font-bold underline">Ke Halaman Login</NuxtLink>
+      </p>
       <div class="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
         <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="mb-5 flex items-center justify-between"><span class="text-sm font-semibold text-slate-500">Saldo bersih</span><Wallet class="text-blue-600" /></div><p class="text-2xl font-extrabold">{{ rupiah(store.stats.totalInflow - store.stats.totalOutflow) }}</p><p class="mt-2 text-xs text-slate-500">Pemasukan dikurangi pengeluaran</p></article>
         <article class="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm"><div class="mb-5 flex items-center justify-between"><span class="text-sm font-semibold text-slate-500">Total pemasukan</span><ArrowDownLeft class="text-emerald-600" /></div><p class="text-2xl font-extrabold">{{ rupiah(store.stats.totalInflow) }}</p><p class="mt-2 text-xs text-emerald-700">Dana masuk</p></article>
