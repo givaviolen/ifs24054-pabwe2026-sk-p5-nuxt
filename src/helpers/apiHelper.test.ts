@@ -1,253 +1,47 @@
-import {
-  afterEach,
-  beforeEach,
-  describe,
-  expect,
-  it,
-  vi,
-} from 'vitest'
+import { describe, it, expect, vi, beforeEach } from "vitest";
+import { apiFetch, getAccessToken, putAccessToken, removeAccessToken } from "./apiHelper";
 
-import {
-  apiRequest,
-  getAccessToken,
-  putAccessToken,
-} from './apiHelper'
+const respond = (json) => vi.fn().mockResolvedValue({ json: () => Promise.resolve(json) });
 
-describe('apiHelper', () => {
-  beforeEach(() => {
-    localStorage.clear()
-    vi.restoreAllMocks()
-  })
+describe("apiHelper", () => {
+  beforeEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+  it("menyimpan dan menghapus token", () => {
+    putAccessToken("abc");
+    expect(getAccessToken()).toBe("abc");
+    removeAccessToken();
+    expect(getAccessToken()).toBeNull();
+  });
 
-  describe('getAccessToken', () => {
-    it('mengembalikan null jika token belum tersedia', () => {
-      expect(getAccessToken()).toBeNull()
-    })
+  it("mengirim Authorization, query params, dan JSON body", async () => {
+    putAccessToken("tok");
+    globalThis.fetch = respond({ status: "success", data: 1 });
+    await apiFetch("/x", { method: "POST", body: { a: 1 }, params: { is_me: 1, kosong: "", n: null } });
+    const [url, opt] = fetch.mock.calls[0];
+    expect(String(url)).toBe("https://open-api.delcom.org/api/v1/x?is_me=1");
+    expect(opt.headers.Authorization).toBe("Bearer tok");
+    expect(opt.headers["Content-Type"]).toBe("application/json");
+    expect(opt.body).toBe('{"a":1}');
+  });
 
-    it('mengembalikan token yang tersimpan', () => {
-      localStorage.setItem(
-        'delcom_access_token',
-        'token-pengujian',
-      )
+  it("FormData tanpa Content-Type, auth=false tanpa token, GET tanpa body", async () => {
+    putAccessToken("tok");
+    globalThis.fetch = respond({ status: "success" });
+    const form = new FormData();
+    await apiFetch("/f", { method: "POST", body: form, auth: false });
+    expect(fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();
+    expect(fetch.mock.calls[0][1].headers["Content-Type"]).toBeUndefined();
+    expect(fetch.mock.calls[0][1].body).toBe(form);
+    await apiFetch("/g");
+    expect(fetch.mock.calls[1][1].body).toBeUndefined();
+  });
 
-      expect(getAccessToken()).toBe('token-pengujian')
-    })
-
-    it('mengembalikan null jika localStorage bernilai undefined', () => {
-      const originalLocalStorage = global.localStorage
-      Object.defineProperty(global, 'localStorage', {
-        value: undefined,
-        configurable: true,
-      })
-      expect(getAccessToken()).toBeNull()
-      Object.defineProperty(global, 'localStorage', {
-        value: originalLocalStorage,
-        configurable: true,
-      })
-    })
-  })
-
-  describe('putAccessToken', () => {
-    it('menyimpan token ke localStorage', () => {
-      putAccessToken('token-pengujian')
-
-      expect(
-        localStorage.getItem('delcom_access_token'),
-      ).toBe('token-pengujian')
-    })
-
-    it('menghapus token jika nilainya null', () => {
-      putAccessToken('token-pengujian')
-      putAccessToken(null)
-
-      expect(
-        localStorage.getItem('delcom_access_token'),
-      ).toBeNull()
-    })
-
-    it('tidak melakukan apa-apa jika localStorage bernilai undefined', () => {
-      const originalLocalStorage = global.localStorage
-      Object.defineProperty(global, 'localStorage', {
-        value: undefined,
-        configurable: true,
-      })
-      putAccessToken('token-pengujian')
-      Object.defineProperty(global, 'localStorage', {
-        value: originalLocalStorage,
-        configurable: true,
-      })
-    })
-  })
-
-  describe('apiRequest', () => {
-    it('mengirim permintaan dengan header JSON', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ message: 'Berhasil' }),
-          {
-            status: 200,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        ),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      const result = await apiRequest<{ message: string }>(
-        '/test',
-      )
-
-      expect(result.message).toBe('Berhasil')
-      expect(fetchMock).toHaveBeenCalledTimes(1)
-
-      const requestOptions = fetchMock.mock.calls[0][1] as RequestInit
-      const headers = new Headers(requestOptions.headers)
-
-      expect(headers.get('Accept')).toBe('application/json')
-    })
-
-    it('menangani path yang tidak diawali garis miring', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ message: 'Berhasil' }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      await apiRequest('test-path')
-      expect(fetchMock).toHaveBeenCalledWith(
-        expect.stringMatching(/\/test-path$/),
-        expect.any(Object),
-      )
-    })
-
-    it('menambahkan Content-Type application/json jika body dikirimkan', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ success: true }), {
-          status: 200,
-          headers: { 'Content-Type': 'application/json' },
-        }),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      await apiRequest('/test', {
-        body: JSON.stringify({ name: 'Testing' }),
-      })
-
-      const requestOptions = fetchMock.mock.calls[0][1] as RequestInit
-      const headers = new Headers(requestOptions.headers)
-
-      expect(headers.get('Content-Type')).toBe('application/json')
-    })
-
-    it('tidak menimpa Content-Type jika header Content-Type sudah disetel', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ success: true }), {
-          status: 200,
-        }),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      const customHeaders = new Headers()
-      customHeaders.set('Content-Type', 'text/plain')
-
-      await apiRequest('/test', {
-        body: 'plain text',
-        headers: customHeaders,
-      })
-
-      const requestOptions = fetchMock.mock.calls[0][1] as RequestInit
-      const headers = new Headers(requestOptions.headers)
-
-      expect(headers.get('Content-Type')).toBe('text/plain')
-    })
-
-    it('menambahkan Bearer Token ketika token tersedia', async () => {
-      putAccessToken('token-pengujian')
-
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(JSON.stringify({ data: [] }), {
-          status: 200,
-          headers: {
-            'Content-Type': 'application/json',
-          },
-        }),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      await apiRequest('/test')
-
-      const requestOptions = fetchMock.mock.calls[0][1] as RequestInit
-      const headers = new Headers(requestOptions.headers)
-
-      expect(headers.get('Authorization')).toBe(
-        'Bearer token-pengujian',
-      )
-    })
-
-    it('melempar error jika server mengembalikan status gagal dengan message', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ message: 'Akses ditolak' }),
-          {
-            status: 401,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        ),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      await expect(
-        apiRequest('/test'),
-      ).rejects.toThrow('Akses ditolak')
-    })
-
-    it('melempar error jika server mengembalikan status gagal dengan error key', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response(
-          JSON.stringify({ error: 'Terjadi kesalahan sistem' }),
-          {
-            status: 400,
-            headers: {
-              'Content-Type': 'application/json',
-            },
-          },
-        ),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      await expect(
-        apiRequest('/test'),
-      ).rejects.toThrow('Terjadi kesalahan sistem')
-    })
-
-    it('menangani respons yang bukan JSON', async () => {
-      const fetchMock = vi.fn().mockResolvedValue(
-        new Response('Server error', {
-          status: 500,
-        }),
-      )
-
-      vi.stubGlobal('fetch', fetchMock)
-
-      await expect(
-        apiRequest('/test'),
-      ).rejects.toThrow('Permintaan gagal (500)')
-    })
-  })
-})
+  it("melempar error dengan message & data saat gagal", async () => {
+    globalThis.fetch = respond({ status: "fail", message: "Salah", data: { field: ["x"] } });
+    await expect(apiFetch("/x")).rejects.toMatchObject({ message: "Salah", data: { field: ["x"] } });
+    globalThis.fetch = respond({ status: "fail" });
+    await expect(apiFetch("/x")).rejects.toThrow("Terjadi kesalahan");
+    globalThis.fetch = vi.fn().mockResolvedValue({ json: () => Promise.reject(new Error("x")) });
+    await expect(apiFetch("/x")).rejects.toThrow("Respons server tidak valid");
+  });
+});
