@@ -383,6 +383,7 @@ const balance = computed(() => totalInflow.value - totalOutflow.value)
                     <button
                       class="rounded-lg border border-blue-200 p-2 text-blue-600 hover:bg-blue-50"
                       title="Ubah transaksi"
+                      aria-label="Ubah transaksi"
                       @click="openEditForm(item)"
                     >
                       <Pencil :size="16" />
@@ -390,6 +391,7 @@ const balance = computed(() => totalInflow.value - totalOutflow.value)
                     <button
                       class="rounded-lg border border-rose-200 p-2 text-rose-600 hover:bg-rose-50"
                       title="Hapus transaksi"
+                      aria-label="Hapus transaksi"
                       @click="removeCashFlow(item)"
                     >
                       <Trash2 :size="16" />
@@ -415,6 +417,7 @@ const balance = computed(() => totalInflow.value - totalOutflow.value)
           </h2>
           <button
             class="rounded-lg p-2 hover:bg-slate-100"
+            aria-label="Tutup formulir transaksi"
             @click="showForm = false"
           >
             <X :size="20" />

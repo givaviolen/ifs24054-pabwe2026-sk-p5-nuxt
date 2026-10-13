@@ -113,7 +113,7 @@ async function handleLogin() {
               :aria-label="
                 showPassword
                   ? 'Sembunyikan kata sandi'
-                  : 'Tampilkan kata sandi'
+                  : 'Lihat kata sandi'
               "
               @click="showPassword = !showPassword"
             >

@@ -89,7 +89,7 @@ async function handleLogin() {
             <button
               class="password-toggle"
               type="button"
-              :aria-label="showPassword ? 'Sembunyikan password' : 'Tampilkan password'"
+              :aria-label="showPassword ? 'Sembunyikan password' : 'Lihat password'"
               @click="showPassword = !showPassword"
             >
               {{ showPassword ? 'Sembunyikan' : 'Lihat' }}
