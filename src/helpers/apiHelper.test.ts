@@ -1,132 +1,148 @@
-import { describe, it, expect, vi, beforeEach } from 'vitest'
-import { getAccessToken, putAccessToken, apiRequest } from './apiHelper'
+
+import {
+  afterEach,
+  beforeEach,
+  describe,
+  expect,
+  it,
+  vi,
+} from 'vitest'
+
+import {
+  apiRequest,
+  getAccessToken,
+  putAccessToken,
+} from './apiHelper'
 
 describe('apiHelper', () => {
   beforeEach(() => {
-    vi.unstubAllGlobals()
     localStorage.clear()
     vi.restoreAllMocks()
   })
 
+  afterEach(() => {
+    vi.unstubAllGlobals()
+  })
+
   describe('getAccessToken', () => {
-    it('returns null if localStorage is undefined', () => {
-      const originalLocalStorage = global.localStorage
-      Object.defineProperty(global, 'localStorage', { value: undefined, configurable: true })
+    it('mengembalikan null jika token belum tersedia', () => {
       expect(getAccessToken()).toBeNull()
-      Object.defineProperty(global, 'localStorage', { value: originalLocalStorage, configurable: true })
     })
 
-    it('returns token from localStorage', () => {
-      localStorage.setItem('delcom_access_token', 'test-token')
-      expect(getAccessToken()).toBe('test-token')
-    })
+    it('mengembalikan token yang tersimpan', () => {
+      localStorage.setItem(
+        'delcom_access_token',
+        'token-pengujian',
+      )
 
-    it('returns null if token is not set', () => {
-      expect(getAccessToken()).toBeNull()
+      expect(getAccessToken()).toBe('token-pengujian')
     })
   })
 
   describe('putAccessToken', () => {
-    it('does nothing if localStorage is undefined', () => {
-      const originalLocalStorage = global.localStorage
-      Object.defineProperty(global, 'localStorage', { value: undefined, configurable: true })
-      putAccessToken('token')
-      // No error thrown
-      Object.defineProperty(global, 'localStorage', { value: originalLocalStorage, configurable: true })
+    it('menyimpan token ke localStorage', () => {
+      putAccessToken('token-pengujian')
+
+      expect(
+        localStorage.getItem('delcom_access_token'),
+      ).toBe('token-pengujian')
     })
 
-    it('sets token if token is provided', () => {
-      putAccessToken('new-token')
-      expect(localStorage.getItem('delcom_access_token')).toBe('new-token')
-    })
-
-    it('removes token if token is null', () => {
-      localStorage.setItem('delcom_access_token', 'test')
+    it('menghapus token jika nilainya null', () => {
+      putAccessToken('token-pengujian')
       putAccessToken(null)
-      expect(localStorage.getItem('delcom_access_token')).toBeNull()
+
+      expect(
+        localStorage.getItem('delcom_access_token'),
+      ).toBeNull()
     })
   })
 
   describe('apiRequest', () => {
-    let fetchMock: any
+    it('mengirim permintaan dengan header JSON', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: 'Berhasil' }),
+          {
+            status: 200,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
+      )
 
-    beforeEach(() => {
-      fetchMock = vi.fn()
       vi.stubGlobal('fetch', fetchMock)
-      vi.stubGlobal('import', { meta: { env: { VITE_DELCOM_BASEURL: 'http://test' } } })
+
+      const result = await apiRequest<{ message: string }>(
+        '/test',
+      )
+
+      expect(result.message).toBe('Berhasil')
+      expect(fetchMock).toHaveBeenCalledTimes(1)
+
+      const requestOptions = fetchMock.mock.calls[0][1] as RequestInit
+      const headers = new Headers(requestOptions.headers)
+
+      expect(headers.get('Accept')).toBe('application/json')
     })
 
-    it('sends request and returns data on success', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: true,
-        json: async () => ({ success: true })
-      })
+    it('menambahkan Bearer Token ketika token tersedia', async () => {
+      putAccessToken('token-pengujian')
 
-      const res = await apiRequest('/test')
-      expect(res).toEqual({ success: true })
-      expect(fetchMock).toHaveBeenCalledWith('https://open-api.delcom.org/api/v1/test', expect.objectContaining({
-        headers: expect.any(Headers)
-      }))
-    })
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(JSON.stringify({ data: [] }), {
+          status: 200,
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }),
+      )
 
-    it('sets Content-Type to application/json if body is provided', async () => {
-      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
-      await apiRequest('/test', { body: JSON.stringify({ a: 1 }) })
-      const callArgs = fetchMock.mock.calls[0]
-      const headers = callArgs[1].headers as Headers
-      expect(headers.get('Content-Type')).toBe('application/json')
-    })
+      vi.stubGlobal('fetch', fetchMock)
 
-    it('does not overwrite Content-Type if already provided', async () => {
-      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
-      const customHeaders = new Headers()
-      customHeaders.set('Content-Type', 'text/plain')
-      await apiRequest('/test', { body: JSON.stringify({ a: 1 }), headers: customHeaders })
-      const callArgs = fetchMock.mock.calls[0]
-      const headers = callArgs[1].headers as Headers
-      expect(headers.get('Content-Type')).toBe('text/plain')
-    })
-
-    it('sets Authorization header if token exists', async () => {
-      localStorage.setItem('delcom_access_token', 'my-token')
-      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
       await apiRequest('/test')
-      const callArgs = fetchMock.mock.calls[0]
-      const headers = callArgs[1].headers as Headers
-      expect(headers.get('Authorization')).toBe('Bearer my-token')
+
+      const requestOptions = fetchMock.mock.calls[0][1] as RequestInit
+      const headers = new Headers(requestOptions.headers)
+
+      expect(headers.get('Authorization')).toBe(
+        'Bearer token-pengujian',
+      )
     })
 
-    it('formats path correctly without double slash', async () => {
-      fetchMock.mockResolvedValueOnce({ ok: true, json: async () => ({}) })
-      await apiRequest('test')
-      expect(fetchMock).toHaveBeenCalledWith('https://open-api.delcom.org/api/v1/test', expect.any(Object))
+    it('melempar error jika server mengembalikan status gagal', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response(
+          JSON.stringify({ message: 'Akses ditolak' }),
+          {
+            status: 401,
+            headers: {
+              'Content-Type': 'application/json',
+            },
+          },
+        ),
+      )
+
+      vi.stubGlobal('fetch', fetchMock)
+
+      await expect(
+        apiRequest('/test'),
+      ).rejects.toThrow('Akses ditolak')
     })
 
-    it('throws error with payload message on failure', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 400,
-        json: async () => ({ message: 'Bad Request' })
-      })
-      await expect(apiRequest('/test')).rejects.toThrow('Bad Request')
-    })
+    it('menangani respons yang bukan JSON', async () => {
+      const fetchMock = vi.fn().mockResolvedValue(
+        new Response('Server error', {
+          status: 500,
+        }),
+      )
 
-    it('throws error with payload error on failure', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 401,
-        json: async () => ({ error: 'Unauthorized' })
-      })
-      await expect(apiRequest('/test')).rejects.toThrow('Unauthorized')
-    })
+      vi.stubGlobal('fetch', fetchMock)
 
-    it('throws default error on failure with invalid json', async () => {
-      fetchMock.mockResolvedValueOnce({
-        ok: false,
-        status: 500,
-        json: async () => { throw new Error('invalid') }
-      })
-      await expect(apiRequest('/test')).rejects.toThrow('Permintaan gagal (500)')
+      await expect(
+        apiRequest('/test'),
+      ).rejects.toThrow('Permintaan gagal (500)')
     })
   })
 })

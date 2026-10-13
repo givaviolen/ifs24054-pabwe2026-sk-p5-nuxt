@@ -1,4 +1,8 @@
-import { apiRequest, putAccessToken } from '~/helpers/apiHelper'
+
+import {
+  apiRequest,
+  putAccessToken,
+} from '../../../helpers/apiHelper'
 
 export interface User {
   id: number
@@ -14,24 +18,55 @@ export interface AuthResponse {
   token: string
 }
 
-export async function login(payload: any): Promise<AuthResponse> {
-  const res = await apiRequest<{ data: AuthResponse }>('/auth/login', {
-    method: 'POST',
-    body: JSON.stringify(payload)
-  })
-  putAccessToken(res.data.token)
-  return res.data
+export interface LoginPayload {
+  email: string
+  password: string
 }
 
-export async function register(payload: any): Promise<unknown> {
+export interface RegisterPayload {
+  name: string
+  email: string
+  password: string
+  password_confirmation: string
+}
+
+export async function login(
+  payload: LoginPayload,
+): Promise<AuthResponse> {
+  const response = await apiRequest<{ data: AuthResponse }>(
+    '/auth/login',
+    {
+      method: 'POST',
+      body: JSON.stringify(payload),
+    },
+  )
+
+  const authData = response.data
+
+  if (!authData?.token) {
+    throw new Error('Token autentikasi tidak ditemukan pada respons API.')
+  }
+
+  putAccessToken(authData.token)
+
+  return authData
+}
+
+export async function register(
+  payload: RegisterPayload,
+): Promise<unknown> {
   return apiRequest('/auth/register', {
     method: 'POST',
-    body: JSON.stringify(payload)
+    body: JSON.stringify(payload),
   })
 }
 
 export async function logout(): Promise<unknown> {
-  const res = await apiRequest('/auth/logout', { method: 'POST' })
-  putAccessToken(null)
-  return res
+  try {
+    return await apiRequest('/auth/logout', {
+      method: 'POST',
+    })
+  } finally {
+    putAccessToken(null)
+  }
 }
