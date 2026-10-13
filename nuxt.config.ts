@@ -4,6 +4,7 @@ export default defineNuxtConfig({
   srcDir: 'src/',
   ssr: false,
   devtools: { enabled: false },
+
   devServer: { port: Number(process.env.APP_PORT || 3000), host: '0.0.0.0' },
   modules: ['@pinia/nuxt'],
   css: ['~/index.css'],

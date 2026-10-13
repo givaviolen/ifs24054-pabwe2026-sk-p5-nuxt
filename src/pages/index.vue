@@ -80,7 +80,7 @@ function openEditForm(item: CashFlow) {
 
 async function refresh() {
   if (!getAccessToken()) {
-    await router.replace('/login')
+    errorMessage.value = 'Belum melakukan autentikasi. Pastikan API dapat diakses dan Anda sudah mengatur autentikasi.'
     return
   }
 
@@ -94,13 +94,6 @@ async function refresh() {
       error instanceof Error
         ? error.message
         : 'Gagal mengambil data arus kas.'
-
-    if (
-      errorMessage.value.includes('401') ||
-      errorMessage.value.toLowerCase().includes('unauthorized')
-    ) {
-      await router.replace('/login')
-    }
   } finally {
     loading.value = false
   }
