@@ -1,13 +1,24 @@
+import { fileURLToPath } from 'node:url'
 import tailwindcss from '@tailwindcss/vite'
+import { deferNuxtCss } from './server/utils/deferCss'
+
+const customPort = Number(process.env.APP_PORT || process.env.PORT) || 3000
 
 export default defineNuxtConfig({
+  compatibilityDate: '2024-11-01',
   srcDir: 'src/',
   ssr: false,
   devtools: { enabled: false },
-
-  devServer: { port: Number(process.env.APP_PORT || 3000), host: '0.0.0.0' },
+  telemetry: false,
+  pages: true,
+  devServer: { port: customPort, host: '0.0.0.0' },
   modules: ['@pinia/nuxt'],
   css: ['~/index.css'],
+  hooks: {
+    'app:resolve'(app) {
+      app.rootComponent = fileURLToPath(new URL('./src/app.vue', import.meta.url))
+    },
+  },
   vite: {
     plugins: [tailwindcss()],
     define: {
@@ -16,15 +27,31 @@ export default defineNuxtConfig({
   },
   runtimeConfig: {
     public: {
-      appPort: process.env.APP_PORT || '3000',
+      appPort: String(customPort),
       delcomBaseUrl: process.env.VITE_DELCOM_BASEURL || 'https://open-api.delcom.org/api/v1',
     },
   },
   routeRules: {
-    '/**': {
-      headers: {
-        'cache-control': 'public, max-age=0, must-revalidate',
+    '/': { headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
+    '/login': { headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
+    '/auth/**': { headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
+    '/cash-flows/**': { headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
+    '/profile': { headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
+    '/users': { headers: { 'cache-control': 'public, max-age=0, must-revalidate' } },
+    '/_nuxt/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
+  },
+  nitro: {
+    devPort: customPort,
+    hooks: {
+      // Untuk HTML yang di-prerender saat build (200.html / index.html)
+      'prerender:generate'(route) {
+        if (typeof route.contents === 'string' && route.fileName?.endsWith('.html')) {
+          route.contents = deferNuxtCss(route.contents)
+        }
       },
+    },
+    externals: {
+      inline: [/[\\/]node_modules[\\/]nuxt[\\/]dist[\\/]/, /[\\/]node_modules[\\/]@nuxt[\\/]/, 'nuxt/dist', '@nuxt/'],
     },
   },
   app: {
@@ -42,11 +69,6 @@ export default defineNuxtConfig({
         { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
         { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
         {
-          rel: 'preload',
-          as: 'style',
-          href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
-        },
-        {
           rel: 'stylesheet',
           href: 'https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap',
           media: 'print',
@@ -58,6 +80,7 @@ export default defineNuxtConfig({
           children: '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap">',
         },
       ],
+      style: [{ children: 'body{background-color:#f8fafc;color:#0f172a}' }],
     },
   },
 })
