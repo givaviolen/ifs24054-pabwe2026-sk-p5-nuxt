@@ -9,6 +9,9 @@ export default defineConfig(({ mode }) => {
   const port = Number(env.APP_PORT || env.PORT) || 3000;
   return {
     plugins: [vue(), tailwindcss()],
+    // tsconfig.json merujuk ke .nuxt/ (hasil `nuxt prepare`) yang tidak ada di CI.
+    // Vitest tidak membutuhkannya, jadi pembacaan tsconfig dimatikan.
+    oxc: { tsconfig: false } as any,
     server: { port },
     preview: { port },
     define: {
