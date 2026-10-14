@@ -4,6 +4,7 @@ const loadSwal = async () => (await import("sweetalert2")).default;
 
 // Variabel ini didefinisikan melalui vite.define di nuxt.config.ts.
 declare const DELCOM_BASEURL: string;
+declare const DELCOM_ORIGIN: string;
 
 // Menampilkan dialog sukses.
 export const showSuccessDialog = async (
@@ -91,7 +92,7 @@ export const photoUrl = (
   }
 
   // Gunakan origin API yang telah dikonfigurasi di Nuxt.
-  const apiOrigin = new URL(DELCOM_BASEURL).origin;
+    const apiOrigin = DELCOM_ORIGIN;
   const photoPath = photo.replace(/^\/+/, "");
 
   return `${apiOrigin}/${photoPath}`;

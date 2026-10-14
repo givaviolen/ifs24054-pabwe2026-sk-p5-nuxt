@@ -1,7 +1,8 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { apiFetch, getAccessToken, putAccessToken, removeAccessToken } from "./apiHelper";
+const fetchMock = () => (globalThis.fetch as unknown as { mock: { calls: any } }).mock;
 
-const respond = (json) => vi.fn().mockResolvedValue({ json: () => Promise.resolve(json) });
+const respond = (json: unknown) => vi.fn().mockResolvedValue({ json: () => Promise.resolve(json) });
 
 describe("apiHelper", () => {
   beforeEach(() => { localStorage.clear(); vi.restoreAllMocks(); });
@@ -17,7 +18,7 @@ describe("apiHelper", () => {
     putAccessToken("tok");
     globalThis.fetch = respond({ status: "success", data: 1 });
     await apiFetch("/x", { method: "POST", body: { a: 1 }, params: { is_me: 1, kosong: "", n: null } });
-    const [url, opt] = fetch.mock.calls[0];
+    const [url, opt] = fetchMock().calls[0];
     expect(String(url)).toBe("https://open-api.delcom.org/api/v1/x?is_me=1");
     expect(opt.headers.Authorization).toBe("Bearer tok");
     expect(opt.headers["Content-Type"]).toBe("application/json");
@@ -29,11 +30,11 @@ describe("apiHelper", () => {
     globalThis.fetch = respond({ status: "success" });
     const form = new FormData();
     await apiFetch("/f", { method: "POST", body: form, auth: false });
-    expect(fetch.mock.calls[0][1].headers.Authorization).toBeUndefined();
-    expect(fetch.mock.calls[0][1].headers["Content-Type"]).toBeUndefined();
-    expect(fetch.mock.calls[0][1].body).toBe(form);
+    expect(fetchMock().calls[0][1].headers.Authorization).toBeUndefined();
+    expect(fetchMock().calls[0][1].headers["Content-Type"]).toBeUndefined();
+    expect(fetchMock().calls[0][1].body).toBe(form);
     await apiFetch("/g");
-    expect(fetch.mock.calls[1][1].body).toBeUndefined();
+    expect(fetchMock().calls[1][1].body).toBeUndefined();
   });
 
   it("melempar error dengan message & data saat gagal", async () => {

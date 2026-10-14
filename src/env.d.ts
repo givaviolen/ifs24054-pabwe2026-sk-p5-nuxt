@@ -1,5 +1,6 @@
 /// <reference types="vite/client" />
 declare const DELCOM_BASEURL: string;
+declare const DELCOM_ORIGIN: string;
 
 declare module "*.vue" {
   import type { DefineComponent } from "vue";

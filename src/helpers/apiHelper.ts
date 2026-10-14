@@ -1,7 +1,7 @@
 const TOKEN_KEY = "delcom_token";
 
 export const getAccessToken = () => localStorage.getItem(TOKEN_KEY);
-export const putAccessToken = (token) => localStorage.setItem(TOKEN_KEY, token);
+export const putAccessToken = (token: string) => localStorage.setItem(TOKEN_KEY, token);
 export const removeAccessToken = () => localStorage.removeItem(TOKEN_KEY);
 
 /**
@@ -9,7 +9,7 @@ export const removeAccessToken = () => localStorage.removeItem(TOKEN_KEY);
  * Melempar Error (dengan properti `data`) jika status bukan "success".
  */
 export async function apiFetch(path: string, { method = "GET", body, params, auth = true }: { method?: string; body?: any; params?: Record<string, any>; auth?: boolean } = {}) {
-  const url = new URL(DELCOM_BASEURL.replace(/\/$/, "") + path);
+  const url = new URL(DELCOM_BASEURL.replace(/\/$/, "") + path, globalThis.location.origin);
   Object.entries(params || {}).forEach(([key, value]) => {
     if (value !== undefined && value !== null && value !== "") url.searchParams.set(key, value);
   });
