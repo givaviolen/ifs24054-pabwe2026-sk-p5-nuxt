@@ -1,4 +1,3 @@
-
 {
   "name": "ifs24054-pabwe2026-sk-p5-nuxt",
   "type": "module",
@@ -31,7 +30,7 @@
   "devDependencies": {
     "@tailwindcss/vite": "^4.3.3",
     "@testing-library/jest-dom": "^7.0.1",
-    "@types/node": "^26.6.4",
+    "@types/node": "^26.6.5",
     "@vitejs/plugin-vue": "^6.0.9",
     "@vitest/coverage-v8": "^5.0.2",
     "@vue/test-utils": "^2.5.1",

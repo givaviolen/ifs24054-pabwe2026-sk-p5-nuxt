@@ -4,6 +4,8 @@ import { deferNuxtCss } from "./server/utils/deferCss";
 
 const customPort = Number(process.env.APP_PORT || process.env.PORT) || 3000;
 
+const htmlCache = { headers: { "cache-control": "public, max-age=0, must-revalidate" } };
+
 // https://nuxt.com/docs/api/configuration/nuxt-config
 export default defineNuxtConfig({
   compatibilityDate: "2024-11-01",
@@ -18,8 +20,7 @@ export default defineNuxtConfig({
   css: ["~/index.css"],
   modules: ["@pinia/nuxt"],
   hooks: {
-    // Pakai src/app.vue langsung sebagai root component (tanpa nuxt-root bawaan: Suspense, error boundary,
-    // dll.) karena ini SPA yang hanya memakai vue-router; bundle awal jadi lebih kecil.
+    // Pakai src/app.vue langsung sebagai root component (tanpa nuxt-root bawaan)
     "app:resolve"(app) {
       app.rootComponent = fileURLToPath(new URL("./src/app.vue", import.meta.url));
     },
@@ -32,16 +33,17 @@ export default defineNuxtConfig({
   },
   devServer: { port: customPort },
   // HTML tidak boleh "no-store" agar halaman bisa dipulihkan dari back/forward cache (bfcache).
+  // "/**" menjadi catch-all untuk semua path (termasuk fallback SPA); rule yang lebih spesifik tetap menang.
   routeRules: {
-    "/": { headers: { "cache-control": "public, max-age=0, must-revalidate" } },
-    "/auth/**": { headers: { "cache-control": "public, max-age=0, must-revalidate" } },
-    "/cash-flows/**": { headers: { "cache-control": "public, max-age=0, must-revalidate" } },
-    "/profile": { headers: { "cache-control": "public, max-age=0, must-revalidate" } },
-    "/users": { headers: { "cache-control": "public, max-age=0, must-revalidate" } },
+    "/**": htmlCache,
+    "/": htmlCache,
+    "/auth/**": htmlCache,
+    "/cash-flows/**": htmlCache,
+    "/profile": htmlCache,
+    "/users": htmlCache,
     "/_nuxt/**": { headers: { "cache-control": "public, max-age=31536000, immutable" } },
   },
   nitro: {
-    devPort: customPort,
     hooks: {
       // Untuk HTML yang di-prerender saat build (200.html / index.html)
       "prerender:generate"(route) {
@@ -50,8 +52,7 @@ export default defineNuxtConfig({
         }
       },
     },
-    // Paksa runtime Nuxt digabung (inline) ke build server, agar modul virtual
-    // nuxt/internal/* (manifest & precomputed) terisi walau path project berspasi di Windows.
+    // Paksa runtime Nuxt digabung (inline) ke build server
     externals: {
       inline: [/[\\/]node_modules[\\/]nuxt[\\/]dist[\\/]/, /[\\/]node_modules[\\/]@nuxt[\\/]/, "nuxt/dist", "@nuxt/"],
     },
